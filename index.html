@@ -1,70 +1,164 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>NexGen Explorer</title>
+/**
+ * NEXGEN DISCOVERY ENGINE - FIXED VERSION
+ */
+
+const POI_DATABASE = [
+    { id: 1, name: "Belvedere Panoramico", lat: 45.4642, lon: 9.1900, type: "outdoor", desc: "Vista mozzafiato sulla città." },
+    { id: 2, name: "Neon Lounge Bar", lat: 45.4850, lon: 9.2030, type: "night", desc: "Cocktail molecolari e musica synthwave." },
+    { id: 3, name: "Giardino Segreto", lat: 45.4630, lon: 9.1850, type: "outdoor", desc: "Un'oasi di silenzio nel caos urbano." },
+    { id: 4, name: "Cyberpunk District", lat: 41.8902, lon: 12.4922, type: "night", desc: "Luci al neon e architettura moderna." }
+];
+
+let state = {
+    isRadarActive: false,
+    userCoords: null,
+    currentTheme: 'day',
+    vibratedPOIs: new Set()
+};
+
+// --- 1. INIZIALIZZAZIONE ---
+const init = () => {
+    console.log("App Initializing...");
     
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body class="theme-day">
+    updateThemeByTime();
+    initParallax();
+    
+    // Rimuovi il loader a prescindere dopo 2 secondi per evitare blocchi
+    setTimeout(() => {
+        const loader = document.getElementById('loader-overlay');
+        if(loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.remove(), 500);
+        }
+        // Mostra i luoghi anche se il GPS non è ancora pronto
+        renderLocations();
+    }, 2000);
 
-    <!-- Overlay per il caricamento iniziale -->
-    <div id="loader-overlay" class="loader-overlay">
-        <div class="pulse-ring"></div>
-        <p>Sincronizzazione Satellitare...</p>
-    </div>
+    // Avvia GPS
+    initLocationTracking();
 
-    <!-- Hero Section con Parallax -->
-    <header class="hero" id="hero">
-        <div class="parallax-layer" id="hero-bg"></div>
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
-            <div class="badge" id="time-badge">Configurazione...</div>
-            <h1 id="hero-title">NexGen Discovery</h1>
-            <p id="hero-subtitle">Rilevamento posizione in corso...</p>
-        </div>
-    </header>
+    document.getElementById('radar-toggle').addEventListener('click', toggleRadar);
+};
 
-    <main class="content">
-        <!-- Controllo Radar -->
-        <div class="radar-control">
-            <button id="radar-toggle" class="btn-radar">
-                <span class="radar-icon"></span>
-                MODALITÀ RADAR <span class="status-label">OFF</span>
+// --- 2. GESTIONE TEMA ---
+const updateThemeByTime = () => {
+    const hour = new Date().getHours();
+    const isNight = hour < 7 || hour > 19;
+    state.currentTheme = isNight ? 'night' : 'day';
+    
+    document.body.className = `theme-${state.currentTheme}`;
+    document.getElementById('time-badge').innerText = isNight ? "🌙 Notte" : "☀️ Giorno";
+    document.getElementById('hero-title').innerText = isNight ? "Night Discovery" : "City Explorer";
+};
+
+// --- 3. GPS CON ERROR HANDLING ---
+const initLocationTracking = () => {
+    if ("geolocation" in navigator) {
+        navigator.geolocation.watchPosition(
+            (pos) => {
+                console.log("Posizione ricevuta:", pos.coords.latitude, pos.coords.longitude);
+                state.userCoords = { 
+                    lat: pos.coords.latitude, 
+                    lon: pos.coords.longitude 
+                };
+                renderLocations();
+            },
+            (err) => {
+                console.warn("Errore GPS o permesso negato:", err.message);
+                document.getElementById('hero-subtitle').innerText = "Attiva il GPS per la distanza reale";
+            },
+            { enableHighAccuracy: true }
+        );
+    } else {
+        alert("Il tuo browser non supporta la geolocalizzazione.");
+    }
+};
+
+// --- 4. CALCOLO DISTANZA ---
+const getDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+};
+
+// --- 5. RENDERING ---
+const renderLocations = () => {
+    const grid = document.getElementById('location-grid');
+    const skeleton = document.getElementById('skeleton-grid');
+    
+    if (!grid) return;
+
+    // Filtra per tema
+    const nearby = POI_DATABASE.filter(poi => 
+        state.currentTheme === 'night' ? true : poi.type === 'outdoor'
+    );
+
+    skeleton.classList.add('hidden');
+    grid.classList.remove('hidden');
+    grid.innerHTML = '';
+
+    nearby.forEach(poi => {
+        let distText = "--";
+        let isNear = false;
+
+        if (state.userCoords) {
+            const dist = getDistance(state.userCoords.lat, state.userCoords.lon, poi.lat, poi.lon);
+            distText = `${dist.toFixed(2)} km`;
+            isNear = dist < 0.5;
+
+            if (isNear && state.isRadarActive && !state.vibratedPOIs.has(poi.id)) {
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                state.vibratedPOIs.add(poi.id);
+            }
+        }
+
+        const card = document.createElement('div');
+        card.className = `card ${isNear && state.isRadarActive ? 'near' : ''}`;
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start">
+                <div>
+                    <h3 style="margin-bottom:5px">${poi.name}</h3>
+                    <p style="opacity:0.7; font-size:0.8rem">${poi.desc}</p>
+                </div>
+                <span style="font-weight:800; color:var(--primary)">${distText}</span>
+            </div>
+            <button onclick="sharePOI('${poi.name}')" style="margin-top:15px; background:none; border:1px solid var(--primary); color:var(--primary); padding:5px 10px; border-radius:10px; font-size:0.8rem">
+                Condividi ↗
             </button>
-        </div>
+        `;
+        grid.appendChild(card);
+    });
 
-        <!-- Griglia Contenuti -->
-        <div id="skeleton-grid" class="grid">
-            <div class="skeleton-card"></div>
-            <div class="skeleton-card"></div>
-        </div>
+    if (state.userCoords) {
+        document.getElementById('hero-subtitle').innerText = `${nearby.length} luoghi trovati vicino a te`;
+    }
+};
 
-        <div id="location-grid" class="grid hidden">
-            <!-- I POI verranno iniettati qui -->
-        </div>
-    </main>
+const toggleRadar = () => {
+    state.isRadarActive = !state.isRadarActive;
+    const btn = document.getElementById('radar-toggle');
+    btn.classList.toggle('active');
+    btn.querySelector('.status-label').innerText = state.isRadarActive ? 'ON' : 'OFF';
+    state.vibratedPOIs.clear();
+    renderLocations();
+};
 
-    <!-- Navigazione Inferiore -->
-    <nav class="dock">
-        <div class="dock-item active">
-            <span class="icon">📍</span>
-            <span class="label">Esplora</span>
-        </div>
-        <div class="dock-item">
-            <span class="icon">✨</span>
-            <span class="label">Eventi</span>
-        </div>
-        <div class="dock-item">
-            <span class="icon">👤</span>
-            <span class="label">Profilo</span>
-        </div>
-    </nav>
+const sharePOI = (name) => {
+    if (navigator.share) {
+        navigator.share({ title: 'Discovery', text: `Andiamo a ${name}?`, url: window.location.href });
+    }
+};
 
-    <script src="app.js"></script>
-</body>
-</html>
+const initParallax = () => {
+    window.addEventListener('scroll', () => {
+        const bg = document.getElementById('hero-bg');
+        if(bg) bg.style.transform = `translateY(${window.pageYOffset * 0.4}px)`;
+    });
+};
+
+// Avvio manuale
+init();
