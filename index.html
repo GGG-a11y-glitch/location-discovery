@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>NexGen Explorer</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-day">
+
+    <!-- Overlay per il caricamento iniziale -->
+    <div id="loader-overlay" class="loader-overlay">
+        <div class="pulse-ring"></div>
+        <p>Sincronizzazione Satellitare...</p>
+    </div>
+
+    <!-- Hero Section con Parallax -->
+    <header class="hero" id="hero">
+        <div class="parallax-layer" id="hero-bg"></div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="badge" id="time-badge">Configurazione...</div>
+            <h1 id="hero-title">NexGen Discovery</h1>
+            <p id="hero-subtitle">Rilevamento posizione in corso...</p>
+        </div>
+    </header>
+
+    <main class="content">
+        <!-- Controllo Radar -->
+        <div class="radar-control">
+            <button id="radar-toggle" class="btn-radar">
+                <span class="radar-icon"></span>
+                MODALITÀ RADAR <span class="status-label">OFF</span>
+            </button>
+        </div>
+
+        <!-- Griglia Contenuti -->
+        <div id="skeleton-grid" class="grid">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+        </div>
+
+        <div id="location-grid" class="grid hidden">
+            <!-- I POI verranno iniettati qui -->
+        </div>
+    </main>
+
+    <!-- Navigazione Inferiore -->
+    <nav class="dock">
+        <div class="dock-item active">
+            <span class="icon">📍</span>
+            <span class="label">Esplora</span>
+        </div>
+        <div class="dock-item">
+            <span class="icon">✨</span>
+            <span class="label">Eventi</span>
+        </div>
+        <div class="dock-item">
+            <span class="icon">👤</span>
+            <span class="label">Profilo</span>
+        </div>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>
