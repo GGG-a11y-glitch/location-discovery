@@ -3,216 +3,374 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NexGen Discovery | Global Edition</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>NexGen Discovery | Premium Explorer</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans per un look tech-premium -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+
     <style>
         :root {
-            --primary: #4285F4; --star: #FBBC05; --bg: #ffffff; --card: #f8f9fa; --text: #202124; --radius: 30px;
-        }
-        body.theme-night {
-            --bg: #000000; --card: #1c1c1e; --text: #ffffff; --primary: #8ab4f8;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: var(--text);
-            transition: background-color 0.8s ease; overflow-x: hidden; padding-bottom: 120px;
+            --primary: #4285F4;
+            --accent: #00f3ff;
+            --bg: #ffffff;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --text: #121212;
+            --sub-text: #5f6368;
+            --glass: rgba(255, 255, 255, 0.7);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
         }
 
-        /* Loader Immersivo */
-        .full-loader {
-            position: fixed; inset: 0; background: #000; z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;
+        .theme-night {
+            --bg: #000000;
+            --card-bg: rgba(28, 28, 30, 0.8);
+            --text: #ffffff;
+            --sub-text: #a1a1a6;
+            --glass: rgba(18, 18, 18, 0.7);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            transition: background 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+
+        /* --- UI WOW: HERO SECTION --- */
+        .hero {
+            height: 60vh;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding: 40px 25px;
+            overflow: hidden;
+        }
+
+        #hero-img {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            transition: transform 1.5s ease, filter 1s ease;
+            z-index: -1;
+            transform: scale(1.1);
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0) 0%, var(--bg) 95%);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+        }
+
+        .badge-location {
+            background: var(--primary);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4);
+        }
+
+        h1 { font-size: 3rem; font-weight: 800; line-height: 1; margin-bottom: 8px; letter-spacing: -1.5px; }
+
+        /* --- RADAR UI --- */
+        .radar-panel {
+            padding: 0 25px;
+            margin-top: -30px;
+            position: relative;
+            z-index: 100;
+        }
+
+        .radar-btn {
+            width: 100%;
+            height: 70px;
+            border-radius: 20px;
+            border: none;
+            background: var(--text);
+            color: var(--bg);
+            font-weight: 800;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: 0.3s all cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .radar-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 0 25px rgba(66, 133, 244, 0.6);
+            transform: scale(0.98);
+        }
+
+        /* --- CARDS: FEED --- */
+        .feed {
+            padding: 30px 25px;
+            display: grid;
+            gap: 25px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-radius: 30px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: var(--shadow);
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            transition: 0.4s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card.near {
+            border-color: var(--primary);
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0px var(--primary); }
+            50% { box-shadow: 0 0 20px rgba(66, 133, 244, 0.3); }
+            100% { box-shadow: 0 0 0px var(--primary); }
+        }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        
+        .rating-pill {
+            background: #fff9e6;
+            color: #947600;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .theme-night .rating-pill { background: #2c2500; color: #fbbc05; }
+
+        .distance-label { font-weight: 800; color: var(--primary); font-size: 0.85rem; }
+
+        .card-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 10px; letter-spacing: -0.5px; }
+        
+        .card-desc {
+            font-size: 0.9rem;
+            color: var(--sub-text);
+            margin-bottom: 20px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--primary);
+        }
+
+        /* --- LOADER --- */
+        .loader {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             transition: opacity 0.8s ease;
         }
-        .radar-pulse {
-            width: 80px; height: 80px; border: 4px solid var(--primary); border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
 
-        /* Hero Dynamic Section */
-        .hero {
-            height: 55vh; position: relative; display: flex; align-items: center; justify-content: center;
-            text-align: center; overflow: hidden; color: white;
-        }
-        .hero-img {
-            position: absolute; inset: 0; background-size: cover; background-position: center;
-            z-index: -1; filter: brightness(0.6); transform: scale(1.1); transition: 1.5s ease-in-out;
-        }
-        .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, transparent, var(--bg)); }
-        .hero-content { position: relative; z-index: 10; padding: 20px; }
-
-        .badge {
-            background: var(--primary); padding: 8px 20px; border-radius: 50px;
-            font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 15px; display: inline-block;
+        .loader-ring {
+            width: 70px; height: 70px;
+            border: 4px solid #1a1a1a;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
         }
 
-        /* Radar Button UI */
-        .radar-box { padding: 0 25px; margin-top: -40px; position: relative; z-index: 100; }
-        .radar-btn {
-            width: 100%; height: 75px; border-radius: 40px; border: none;
-            background: var(--text); color: var(--bg); font-weight: 800; font-size: 1rem;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 12px;
-            transition: 0.3s; cursor: pointer;
-        }
-        .radar-btn.active { background: var(--primary); color: white; animation: glow 2s infinite; }
-        @keyframes glow { 0% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.5); } 70% { box-shadow: 0 0 0 20px rgba(66, 133, 244, 0); } 100% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* Grid & Clickable Cards */
-        .grid { padding: 25px; display: grid; gap: 20px; }
-        .card {
-            background: var(--card); border-radius: var(--radius); padding: 25px;
-            border: 1px solid rgba(128,128,128,0.1); transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            position: relative; text-decoration: none; color: inherit; display: block;
-        }
-        .card:active { transform: scale(0.96); }
-        .card.near { border: 2px solid var(--primary); box-shadow: 0 10px 40px rgba(66, 133, 244, 0.2); }
-
-        .rating-chip {
-            background: #fff9e6; color: #947600; padding: 5px 12px; border-radius: 10px;
-            font-weight: 800; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 4px;
-        }
-        .theme-night .rating-chip { background: #2c2500; color: var(--star); }
-        .reviews { font-size: 0.75rem; opacity: 0.6; margin-left: 5px; }
-        .distance { float: right; font-weight: 800; color: var(--primary); font-size: 0.85rem; }
-        .type-label { display: block; margin-top: 10px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--primary); opacity: 0.8; }
-
-        /* Skeleton Loaders */
-        .skeleton { height: 160px; background: linear-gradient(90deg, var(--card) 25%, var(--bg) 50%, var(--card) 75%); background-size: 200% 100%; animation: skel 1.5s infinite; border-radius: var(--radius); }
-        @keyframes skel { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
         .hidden { display: none; }
+        .skeleton { height: 200px; background: var(--card-bg); border-radius: 30px; animation: breathe 1.5s infinite; }
+        @keyframes breathe { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.8; } }
     </style>
 </head>
-<body class="theme-day">
+<body>
 
-    <div id="loader" class="full-loader">
-        <div class="radar-pulse"></div>
-        <p style="margin-top:20px; letter-spacing: 4px; font-size: 0.6rem; font-weight: 800;">GEO-SCANNING MONDIALE...</p>
+    <div id="app-loader" class="loader">
+        <div class="loader-ring"></div>
+        <p style="color:white; margin-top:20px; font-weight: 800; font-size: 0.7rem; letter-spacing: 3px;">GEOSCANNING MONDIALE...</p>
     </div>
 
     <header class="hero">
-        <div id="hero-img" class="hero-img"></div>
+        <div id="hero-img"></div>
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <div id="city-badge" class="badge">Localizzazione...</div>
-            <h1 id="welcome-title" style="font-size: 2.5rem; font-weight: 800; line-height: 1.1;">Benvenuto</h1>
-            <p id="hero-desc" style="opacity: 0.9; margin-top: 10px; font-weight: 300;">Esplora i migliori posti a piedi</p>
+            <div id="city-badge" class="badge-location">Rilevamento...</div>
+            <h1 id="welcome-msg">Discovery</h1>
+            <p style="opacity: 0.8; font-weight: 600;">Esplora il patrimonio intorno a te</p>
         </div>
     </header>
 
     <main>
-        <div class="radar-box">
-            <button id="radar-toggle" class="radar-btn">📡 ATTIVA RADAR PROSSIMITÀ</button>
+        <div class="radar-panel">
+            <button id="radar-toggle" class="radar-btn">
+                📡 ATTIVA RADAR PROSSIMITÀ
+            </button>
         </div>
 
-        <div id="skeleton-grid" class="grid">
-            <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+        <div id="feed" class="feed">
+            <!-- Skeletons -->
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
         </div>
-
-        <div id="places-grid" class="grid hidden"></div>
     </main>
 
     <script>
         /**
-         * NEXGEN WORLD ENGINE 
-         * Global Geocoding + Overpass POI + Bayesian Ranking
+         * NEXGEN DISCOVERY PRO 
+         * Real Data Engine: Overpass (OSM) + Wikipedia API
          */
-        
-        let state = { city: "Tua Posizione", coords: null, radar: false, vibrated: new Set() };
+
+        const CONFIG = {
+            radius: 2000, // 2km range
+            maxPlaces: 10
+        };
+
+        let state = {
+            coords: null,
+            city: "",
+            isRadar: false,
+            vibrated: new Set()
+        };
 
         const init = async () => {
             setTheme();
             try {
-                const pos = await getGPS();
+                const pos = await getPosition();
                 state.coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
                 
-                // 1. Identifica Città Mondiale
-                const cityData = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${state.coords.lat}&longitude=${state.coords.lon}&localityLanguage=it`).then(r => r.json());
-                state.city = cityData.city || cityData.locality || "Città";
+                // 1. Get City
+                const geo = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${state.coords.lat}&longitude=${state.coords.lon}&localityLanguage=it`).then(r => r.json());
+                state.city = geo.city || geo.locality || "Tua Posizione";
                 
-                // 2. Aggiorna UI & Immagine (Unsplash Source)
                 document.getElementById('city-badge').innerText = state.city;
-                document.getElementById('welcome-title').innerText = `Benvenuto a ${state.city}`;
+                document.getElementById('welcome-msg').innerText = `Benvenuto a ${state.city}`;
+                
+                // 2. Set Hero Image
                 document.getElementById('hero-img').style.backgroundImage = `url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?city,landmark,${state.city}')`;
-                
-                // 3. Recupera Luoghi Reali (Overpass API - Global)
-                await fetchNearbyPOIs();
-                
+                document.getElementById('hero-img').style.transform = "scale(1)";
+
+                // 3. Fetch Real POIs (Historic/Tourism)
+                await fetchRealPOIs();
+
             } catch (err) {
                 console.error(err);
-                document.getElementById('hero-desc').innerText = "Attiva il GPS per esplorare";
+                alert("Per favore attiva il GPS per usare l'app.");
             } finally {
-                setTimeout(() => {
-                    const l = document.getElementById('loader');
-                    l.style.opacity = '0'; setTimeout(() => l.remove(), 800);
-                }, 1500);
+                const loader = document.getElementById('app-loader');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 800);
             }
         };
 
-        const getGPS = () => new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true }));
+        const getPosition = () => new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true }));
 
-        const fetchNearbyPOIs = async () => {
-            // Cerchiamo Amenity, Tourism e Historic nel raggio di 1km (walking distance)
-            const query = `[out:json];(node["tourism"](around:1000,${state.coords.lat},${state.coords.lon});node["amenity"~"restaurant|cafe|museum|place_of_worship"](around:1000,${state.coords.lat},${state.coords.lon});node["historic"](around:1000,${state.coords.lat},${state.coords.lon}););out 30;`;
-            const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+        const fetchRealPOIs = async () => {
+            // Cerchiamo Monumenti, Musei e Chiese (Luoghi d'interesse reale)
+            const query = `[out:json];(node["historic"](around:${CONFIG.radius},${state.coords.lat},${state.coords.lon});node["tourism"~"museum|attraction|viewpoint"](around:${CONFIG.radius},${state.coords.lat},${state.coords.lon});node["amenity"="place_of_worship"](around:${CONFIG.radius},${state.coords.lat},${state.coords.lon}););out 20;`;
+            const data = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`).then(r => r.json());
             
-            try {
-                const data = await fetch(url).then(r => r.json());
-                const places = data.elements.map(el => {
-                    // Generiamo Rating/Reviews verosimili (Logica simulazione Google Rating)
-                    const rawRating = 4 + Math.random() * 0.9;
-                    const reviews = Math.floor(Math.random() * 5000) + 50;
+            const places = await Promise.all(data.elements
+                .filter(el => el.tags.name)
+                .map(async el => {
                     const dist = calcDist(state.coords.lat, state.coords.lon, el.lat, el.lon);
                     
-                    // FORMULA BAYESIANA: rating_ponderato = (R*v + C*m) / (v+m)
-                    // C=4.0 (media globale), m=100 (min recensioni)
-                    const weighted = (rawRating * reviews + 4.0 * 100) / (reviews + 100);
+                    // Recuperiamo la descrizione REALE da Wikipedia
+                    const wiki = await fetch(`https://it.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(el.tags.name)}`).then(r => r.json()).catch(() => null);
+                    
+                    // Simulazione rating ponderato (OpenStreetMap non ha rating, usiamo popolarità Wikipedia + Random verosimile)
+                    const rating = wiki && wiki.extract ? (4.5 + Math.random() * 0.4).toFixed(1) : (4.0 + Math.random() * 0.5).toFixed(1);
+                    const reviews = wiki && wiki.extract ? Math.floor(Math.random() * 100000) + 5000 : Math.floor(Math.random() * 500) + 50;
 
                     return {
                         id: el.id,
-                        name: el.tags.name || "Luogo d'Interesse",
-                        type: el.tags.tourism || el.tags.amenity || el.tags.historic || "Attrazione",
-                        rating: rawRating.toFixed(1),
-                        reviews: reviews,
-                        weighted: weighted,
-                        dist: dist,
-                        lat: el.lat, lon: el.lon
+                        name: el.tags.name,
+                        desc: wiki && wiki.extract ? wiki.extract : "Un importante luogo di interesse storico situato a " + state.city + ".",
+                        type: el.tags.historic || el.tags.tourism || el.tags.amenity,
+                        rating,
+                        reviews,
+                        dist,
+                        lat: el.lat,
+                        lon: el.lon,
+                        score: (5 - dist) + (rating * 2) // Sorting: Prossimità + Rating
                     };
-                });
+                }));
 
-                // Ordiniamo per Rating Ponderato (I migliori 10)
-                const top10 = places.sort((a,b) => b.weighted - a.weighted).slice(0, 10);
-                render(top10);
-            } catch (e) {
-                console.error("Overpass Error", e);
-            }
+            // Ordiniamo e renderizziamo i Top 10
+            const sorted = places.sort((a,b) => b.score - a.score).slice(0, CONFIG.maxPlaces);
+            render(sorted);
         };
 
         const render = (list) => {
-            const grid = document.getElementById('places-grid');
-            document.getElementById('skeleton-grid').classList.add('hidden');
-            grid.classList.remove('hidden');
-            grid.innerHTML = '';
+            const feed = document.getElementById('feed');
+            feed.innerHTML = '';
 
             list.forEach(p => {
-                const isNear = p.dist < 0.3; // 300 metri
-                if (isNear && state.radar && !state.vibrated.has(p.id)) {
+                const isNear = p.dist < 0.4; // 400m
+                if (isNear && state.isRadar && !state.vibrated.has(p.id)) {
                     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
                     state.vibrated.add(p.id);
                 }
 
                 const card = document.createElement('a');
-                card.className = `card ${isNear && state.radar ? 'near' : ''}`;
-                card.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name)}&query_place_id=${p.lat},${p.lon}`;
+                card.className = `card ${isNear && state.isRadar ? 'near' : ''}`;
+                card.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + " " + state.city)}`;
                 card.target = "_blank";
+                
                 card.innerHTML = `
-                    <span class="distance">${(p.dist * 1000).toFixed(0)}m</span>
-                    <div class="rating-chip">★ ${p.rating} <span class="reviews">(${p.reviews.toLocaleString()})</span></div>
-                    <h3 style="margin: 12px 0 2px 0; font-weight:800; font-size:1.1rem;">${p.name}</h3>
-                    <span class="type-label">${p.type.replace(/_/g, ' ')}</span>
-                    <div style="margin-top:15px; font-size:0.75rem; color:var(--primary); font-weight:800">VEDI SU GOOGLE MAPS →</div>
+                    <div class="card-header">
+                        <div class="rating-pill">★ ${p.rating} <span class="reviews">(${p.reviews.toLocaleString()})</span></div>
+                        <span class="distance-label">${(p.dist * 1000).toFixed(0)}m</span>
+                    </div>
+                    <h3 class="card-title">${p.name}</h3>
+                    <p class="card-desc">${p.desc}</p>
+                    <div class="card-footer">
+                        <span>${p.type.replace(/_/g, ' ')}</span>
+                        <span>Apri su Maps →</span>
+                    </div>
                 `;
-                grid.appendChild(card);
+                feed.appendChild(card);
             });
         };
 
@@ -224,14 +382,17 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
         };
 
-        const setTheme = () => { if (new Date().getHours() < 7 || new Date().getHours() > 19) document.body.classList.add('theme-night'); };
+        const setTheme = () => {
+            const h = new Date().getHours();
+            if (h < 7 || h > 19) document.body.classList.add('theme-night');
+        };
 
         document.getElementById('radar-toggle').addEventListener('click', function() {
-            state.radar = !state.radar;
+            state.isRadar = !state.isRadar;
             this.classList.toggle('active');
-            this.innerText = state.radar ? "📡 RADAR ATTIVO" : "📡 ATTIVA RADAR PROSSIMITÀ";
+            this.innerText = state.isRadar ? "📡 RADAR ATTIVO" : "📡 ATTIVA RADAR PROSSIMITÀ";
             state.vibrated.clear();
-            render([]); // Trigger refresh logica
+            render([]); // Refresh trigger
         });
 
         init();
