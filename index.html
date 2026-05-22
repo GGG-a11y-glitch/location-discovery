@@ -1,164 +1,373 @@
-/**
- * NEXGEN DISCOVERY ENGINE - FIXED VERSION
- */
-
-const POI_DATABASE = [
-    { id: 1, name: "Belvedere Panoramico", lat: 45.4642, lon: 9.1900, type: "outdoor", desc: "Vista mozzafiato sulla città." },
-    { id: 2, name: "Neon Lounge Bar", lat: 45.4850, lon: 9.2030, type: "night", desc: "Cocktail molecolari e musica synthwave." },
-    { id: 3, name: "Giardino Segreto", lat: 45.4630, lon: 9.1850, type: "outdoor", desc: "Un'oasi di silenzio nel caos urbano." },
-    { id: 4, name: "Cyberpunk District", lat: 41.8902, lon: 12.4922, type: "night", desc: "Luci al neon e architettura moderna." }
-];
-
-let state = {
-    isRadarActive: false,
-    userCoords: null,
-    currentTheme: 'day',
-    vibratedPOIs: new Set()
-};
-
-// --- 1. INIZIALIZZAZIONE ---
-const init = () => {
-    console.log("App Initializing...");
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>NexGen Discovery | Google Maps Explorer</title>
     
-    updateThemeByTime();
-    initParallax();
-    
-    // Rimuovi il loader a prescindere dopo 2 secondi per evitare blocchi
-    setTimeout(() => {
-        const loader = document.getElementById('loader-overlay');
-        if(loader) {
-            loader.style.opacity = '0';
-            setTimeout(() => loader.remove(), 500);
-        }
-        // Mostra i luoghi anche se il GPS non è ancora pronto
-        renderLocations();
-    }, 2000);
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
 
-    // Avvia GPS
-    initLocationTracking();
-
-    document.getElementById('radar-toggle').addEventListener('click', toggleRadar);
-};
-
-// --- 2. GESTIONE TEMA ---
-const updateThemeByTime = () => {
-    const hour = new Date().getHours();
-    const isNight = hour < 7 || hour > 19;
-    state.currentTheme = isNight ? 'night' : 'day';
-    
-    document.body.className = `theme-${state.currentTheme}`;
-    document.getElementById('time-badge').innerText = isNight ? "🌙 Notte" : "☀️ Giorno";
-    document.getElementById('hero-title').innerText = isNight ? "Night Discovery" : "City Explorer";
-};
-
-// --- 3. GPS CON ERROR HANDLING ---
-const initLocationTracking = () => {
-    if ("geolocation" in navigator) {
-        navigator.geolocation.watchPosition(
-            (pos) => {
-                console.log("Posizione ricevuta:", pos.coords.latitude, pos.coords.longitude);
-                state.userCoords = { 
-                    lat: pos.coords.latitude, 
-                    lon: pos.coords.longitude 
-                };
-                renderLocations();
-            },
-            (err) => {
-                console.warn("Errore GPS o permesso negato:", err.message);
-                document.getElementById('hero-subtitle').innerText = "Attiva il GPS per la distanza reale";
-            },
-            { enableHighAccuracy: true }
-        );
-    } else {
-        alert("Il tuo browser non supporta la geolocalizzazione.");
-    }
-};
-
-// --- 4. CALCOLO DISTANZA ---
-const getDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-};
-
-// --- 5. RENDERING ---
-const renderLocations = () => {
-    const grid = document.getElementById('location-grid');
-    const skeleton = document.getElementById('skeleton-grid');
-    
-    if (!grid) return;
-
-    // Filtra per tema
-    const nearby = POI_DATABASE.filter(poi => 
-        state.currentTheme === 'night' ? true : poi.type === 'outdoor'
-    );
-
-    skeleton.classList.add('hidden');
-    grid.classList.remove('hidden');
-    grid.innerHTML = '';
-
-    nearby.forEach(poi => {
-        let distText = "--";
-        let isNear = false;
-
-        if (state.userCoords) {
-            const dist = getDistance(state.userCoords.lat, state.userCoords.lon, poi.lat, poi.lon);
-            distText = `${dist.toFixed(2)} km`;
-            isNear = dist < 0.5;
-
-            if (isNear && state.isRadarActive && !state.vibratedPOIs.has(poi.id)) {
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                state.vibratedPOIs.add(poi.id);
-            }
+    <style>
+        /* --- CSS: DESIGN & ANIMAZIONI --- */
+        :root {
+            --primary: #4285F4; /* Google Blue */
+            --star: #FBBC05;   /* Google Star Yellow */
+            --bg: #ffffff;
+            --card: #f8f9fa;
+            --text: #202124;
+            --radius: 28px;
+            --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        const card = document.createElement('div');
-        card.className = `card ${isNear && state.isRadarActive ? 'near' : ''}`;
-        card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:flex-start">
-                <div>
-                    <h3 style="margin-bottom:5px">${poi.name}</h3>
-                    <p style="opacity:0.7; font-size:0.8rem">${poi.desc}</p>
-                </div>
-                <span style="font-weight:800; color:var(--primary)">${distText}</span>
-            </div>
-            <button onclick="sharePOI('${poi.name}')" style="margin-top:15px; background:none; border:1px solid var(--primary); color:var(--primary); padding:5px 10px; border-radius:10px; font-size:0.8rem">
-                Condividi ↗
+        /* Tema Notte OLED (Risparmio batteria e contrasto) */
+        body.theme-night {
+            --bg: #000000;
+            --card: #1c1c1e;
+            --text: #ffffff;
+            --primary: #8ab4f8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            transition: background-color 0.8s ease;
+            overflow-x: hidden;
+            padding-bottom: 100px;
+        }
+
+        /* Loader Iniziale */
+        .full-loader {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: opacity 0.6s ease;
+        }
+        .radar-scan {
+            width: 80px; height: 80px;
+            border: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: scan 1.5s infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes scan {
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        /* Hero & Parallax */
+        .hero {
+            height: 45vh;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .hero-bg {
+            position: absolute;
+            top: -10%; left: 0; width: 100%; height: 120%;
+            background-size: cover;
+            background-position: center;
+            z-index: -1;
+            will-change: transform;
+            filter: brightness(0.8);
+        }
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent, var(--bg));
+        }
+
+        .badge {
+            background: var(--primary);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        /* Radar Toggle Button */
+        .radar-box {
+            padding: 0 20px;
+            margin-top: -30px;
+            position: relative;
+            z-index: 100;
+        }
+        .radar-btn {
+            width: 100%;
+            height: 64px;
+            border-radius: 32px;
+            border: none;
+            background: var(--text);
+            color: var(--bg);
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: var(--transition);
+        }
+        .radar-btn.active {
+            background: var(--primary);
+            color: white;
+            animation: pulse-button 2s infinite;
+        }
+        @keyframes pulse-button {
+            0% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(66, 133, 244, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0); }
+        }
+
+        /* Skeleton Loaders */
+        .grid { padding: 25px; display: grid; gap: 20px; }
+        .skeleton-card {
+            height: 160px;
+            background: linear-gradient(90deg, var(--card) 25%, var(--bg) 50%, var(--card) 75%);
+            background-size: 200% 100%;
+            animation: loading-wave 1.5s infinite;
+            border-radius: var(--radius);
+        }
+        @keyframes loading-wave {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Location Cards */
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 24px;
+            border: 1px solid rgba(128,128,128,0.1);
+            transition: var(--transition);
+            position: relative;
+        }
+        .card.near {
+            border: 2px solid var(--primary);
+            transform: scale(1.03);
+            box-shadow: 0 0 30px rgba(66, 133, 244, 0.4);
+            animation: card-glow 1.5s infinite alternate;
+        }
+        @keyframes card-glow {
+            from { box-shadow: 0 0 10px rgba(66, 133, 244, 0.2); }
+            to { box-shadow: 0 0 30px rgba(66, 133, 244, 0.5); }
+        }
+
+        .rating-box { color: var(--star); font-weight: 800; font-size: 1.1rem; }
+        .review-count { font-size: 0.8rem; opacity: 0.6; margin-left: 6px; }
+        .dist-label { font-weight: 800; color: var(--primary); float: right; }
+
+        .btn-share {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Overlay Caricamento -->
+    <div id="app-loader" class="full-loader">
+        <div class="radar-scan"></div>
+        <p style="letter-spacing: 2px; font-weight: 300;">SINCRONIZZAZIONE GPS...</p>
+    </div>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div id="hero-bg" class="hero-bg"></div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div id="status-badge" class="badge">Analisi Luoghi...</div>
+            <h1 id="hero-title" style="font-size: 2.5rem; font-weight: 800;">Discovery</h1>
+            <p id="hero-subtitle" style="opacity: 0.8;">Recensioni Google Maps reali</p>
+        </div>
+    </header>
+
+    <main>
+        <!-- Tasto Radar -->
+        <div class="radar-box">
+            <button id="radar-toggle" class="radar-btn">
+                📡 MODALITÀ RADAR: <span id="radar-status">OFF</span>
             </button>
-        `;
-        grid.appendChild(card);
-    });
+        </div>
 
-    if (state.userCoords) {
-        document.getElementById('hero-subtitle').innerText = `${nearby.length} luoghi trovati vicino a te`;
-    }
-};
+        <!-- Skeleton -->
+        <div id="skeleton-grid" class="grid">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+        </div>
 
-const toggleRadar = () => {
-    state.isRadarActive = !state.isRadarActive;
-    const btn = document.getElementById('radar-toggle');
-    btn.classList.toggle('active');
-    btn.querySelector('.status-label').innerText = state.isRadarActive ? 'ON' : 'OFF';
-    state.vibratedPOIs.clear();
-    renderLocations();
-};
+        <!-- Griglia Luoghi -->
+        <div id="location-grid" class="grid hidden"></div>
+    </main>
 
-const sharePOI = (name) => {
-    if (navigator.share) {
-        navigator.share({ title: 'Discovery', text: `Andiamo a ${name}?`, url: window.location.href });
-    }
-};
+    <script>
+        /* --- JAVASCRIPT: LOGICA AVANZATA --- */
 
-const initParallax = () => {
-    window.addEventListener('scroll', () => {
-        const bg = document.getElementById('hero-bg');
-        if(bg) bg.style.transform = `translateY(${window.pageYOffset * 0.4}px)`;
-    });
-};
+        // Database Simulato (Simula Google Places API)
+        const PLACES_DB = [
+            { id: 1, name: "Piazza del Duomo", lat: 45.4642, lon: 9.1900, rating: 4.8, reviews: 145000, type: "day" },
+            { id: 2, name: "Terrazza Aperol", lat: 45.4641, lon: 9.1895, rating: 4.3, reviews: 5200, type: "night" },
+            { id: 3, name: "Parco Sempione", lat: 45.4725, lon: 9.1769, rating: 4.6, reviews: 28000, type: "day" },
+            { id: 4, name: "Blue Note Milano", lat: 45.4897, lon: 9.1912, rating: 4.7, reviews: 3400, type: "night" },
+            { id: 5, name: "Colosseo", lat: 41.8902, lon: 12.4922, rating: 4.9, reviews: 350000, type: "day" }
+        ];
 
-// Avvio manuale
-init();
+        let state = {
+            userPos: null,
+            isRadar: false,
+            theme: 'day',
+            vibrated: new Set()
+        };
+
+        const init = () => {
+            handleContext();
+            startTracking();
+            
+            // Rimuovi loader dopo 2.5s
+            setTimeout(() => {
+                const loader = document.getElementById('app-loader');
+                if(loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 600);
+                }
+                render();
+            }, 2500);
+
+            document.getElementById('radar-toggle').addEventListener('click', toggleRadar);
+            
+            // Parallax
+            window.addEventListener('scroll', () => {
+                const bg = document.getElementById('hero-bg');
+                bg.style.transform = `translateY(${window.pageYOffset * 0.4}px) scale(1.1)`;
+            });
+        };
+
+        const handleContext = () => {
+            const hour = new Date().getHours();
+            const isNight = hour < 7 || hour > 19;
+            state.theme = isNight ? 'night' : 'day';
+            
+            document.body.className = `theme-${state.theme}`;
+            document.getElementById('status-badge').innerText = isNight ? "🌙 Mood Notturno" : "☀️ Esplorazione Diurna";
+            document.getElementById('hero-title').innerText = isNight ? "Night Discovery" : "City Explorer";
+            
+            const bgUrl = isNight ? 
+                'https://images.unsplash.com/photo-1514565131-fce0801e5785?q=80&w=1200' : 
+                'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=1200';
+            document.getElementById('hero-bg').style.backgroundImage = `url(${bgUrl})`;
+        };
+
+        const startTracking = () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(
+                    (pos) => {
+                        state.userPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+                        render();
+                    },
+                    (err) => console.log("GPS offline o negato"),
+                    { enableHighAccuracy: true }
+                );
+            }
+        };
+
+        const getDist = (lat1, lon1, lat2, lon2) => {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+        };
+
+        const render = () => {
+            const grid = document.getElementById('location-grid');
+            const skeleton = document.getElementById('skeleton-grid');
+            if(!grid) return;
+
+            // Filtra per tema (di notte mostriamo tutto o solo locali, di giorno solo outdoor)
+            const filtered = PLACES_DB.filter(p => state.theme === 'night' ? true : p.type === 'day');
+
+            skeleton.classList.add('hidden');
+            grid.classList.remove('hidden');
+            grid.innerHTML = '';
+
+            filtered.forEach(place => {
+                let dText = "-- km";
+                let isNear = false;
+
+                if (state.userPos) {
+                    const d = getDist(state.userPos.lat, state.userPos.lon, place.lat, place.lon);
+                    dText = `${d.toFixed(2)} km`;
+                    isNear = d < 0.5;
+
+                    // WOW! VIBRAZIONE E RADAR
+                    if (isNear && state.isRadar && !state.vibrated.has(place.id)) {
+                        if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                        state.vibrated.add(place.id);
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = `card ${isNear && state.isRadar ? 'near' : ''}`;
+                card.innerHTML = `
+                    <span class="dist-label">${dText}</span>
+                    <div class="rating-box">★ ${place.rating} <span class="review-count">(${place.reviews.toLocaleString()} recensioni)</span></div>
+                    <h3 style="margin: 10px 0 5px 0; font-weight: 800;">${place.name}</h3>
+                    <p style="font-size: 0.8rem; opacity: 0.7;">Consigliato in base alle tue preferenze e al rating Google Maps.</p>
+                    <button class="btn-share" onclick="shareIt('${place.name}', '${place.rating}')">INVITA UN AMICO ↗</button>
+                `;
+                grid.appendChild(card);
+            });
+        };
+
+        const toggleRadar = () => {
+            state.isRadar = !state.isRadar;
+            const btn = document.getElementById('radar-toggle');
+            btn.classList.toggle('active');
+            document.getElementById('radar-status').innerText = state.isRadar ? "ON" : "OFF";
+            state.vibrated.clear();
+            render();
+        };
+
+        const shareIt = (name, stars) => {
+            const msg = `Ehi! Ho trovato "${name}" (${stars}★ su Google Maps). Ci andiamo insieme? 📍`;
+            if (navigator.share) {
+                navigator.share({ title: 'Discovery', text: msg, url: window.location.href });
+            } else {
+                alert(msg);
+            }
+        };
+
+        // Boot
+        init();
+    </script>
+</body>
+</html>
